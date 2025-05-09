@@ -1,4 +1,4 @@
-# numlock-mouse
+# [numlock-mouse](https://chatgpt.com/share/681e05a6-bb84-8011-ba20-9dbc7aa64f10)
 
 This software enables mouseclicks from the numpad on a keyboard when the numlock is not enabled
 
