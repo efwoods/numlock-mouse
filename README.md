@@ -1,5 +1,8 @@
 # [numlock-mouse](https://chatgpt.com/share/681e05a6-bb84-8011-ba20-9dbc7aa64f10)
 
+[Mouse Movement Reference](https://pynput.readthedocs.io/en/latest/mouse.html#monitoring-the-mouse)
+[Keyboard Movement Reference](https://pynput.readthedocs.io/en/latest/keyboard.html#monitoring-the-keyboard)
+
 This software enables mouseclicks from the numpad on a keyboard when the numlock is not enabled
 
 ✅ Complete Proof-of-Concept (PoC)
@@ -19,8 +22,9 @@ Step 3: Edit ~/.xbindkeysrc to Bind / to Left Click
 Add this block to the end of your ~/.xbindkeysrc file:
 
 # Send left click on '/' key (only when Num Lock is off)
-"bash -c 'if [[ $(xset q | grep "Num Lock" | awk \"{print \\$8}\") == \"off\" ]]; then xdotool click 1; fi'"
-  KP_Divide
+
+"bash -c 'if [[$(xset q | grep "Num Lock" | awk \"{print \\$8}\") == \"off\"]]; then xdotool click 1; fi'"
+KP_Divide
 
 Explanation:
 
@@ -60,5 +64,3 @@ Then enable it:
 systemctl --user enable --now xbindkeys
 
 Would you like to map this to a different key or make the mouse move too?
-
-
