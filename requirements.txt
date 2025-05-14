@@ -1,4 +1,5 @@
 pyautogui
 keyboard
 pynput
-
+cryptography
+python-xlib

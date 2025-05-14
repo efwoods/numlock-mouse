@@ -64,3 +64,27 @@ Then enable it:
 systemctl --user enable --now xbindkeys
 
 Would you like to map this to a different key or make the mouse move too?
+
+---
+
+✅ AWS Future Plan
+
+When ready, we will:
+
+    Replace SQLite with Amazon RDS (MySQL or PostgreSQL) or Amazon DynamoDB
+
+    Upload logs from local SQLite to Amazon S3 encrypted buckets using KMS
+
+    Use IAM roles and Cognito if needed to secure uploads without exposing keys
+
+I can prepare you a Docker + systemd + AWS-ready setup later.
+
+Would you like me to help you:
+
+    Encrypt your SQLite database itself?
+
+    Add a systemd service now for persistent background operation?
+
+    Add a CLI tool to decrypt specific date ranges or export to CSV?
+
+Let me know your next step.
