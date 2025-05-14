@@ -3,6 +3,7 @@ import pyautogui
 from Xlib.display import Display
 import ctypes
 import threading
+import pyautogui
 
 
 # Hide mouse using X11 (Linux)
