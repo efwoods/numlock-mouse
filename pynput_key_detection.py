@@ -33,3 +33,4 @@ if __name__ == "__main__":
     combo = {keyboard.Key.ctrl_l, keyboard.Key.alt_l, keyboard.KeyCode(char="k")}
     listener = KeyComboListener(combo)
     listener.start()
+
