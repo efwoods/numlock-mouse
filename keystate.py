@@ -1,6 +1,7 @@
-from pynput import keyboard
+from pynput import keyboard, mouse
 import subprocess
 import pyautogui
+import threading
 
 
 def is_numlock_on():
@@ -38,20 +39,20 @@ def on_press(key):
     if key == keyboard.Key.num_lock:
         numlock_state = not numlock_state
         print("Num Lock toggled:", "ON" if numlock_state else "OFF")
-    print(f"vk: {vk}")
-    vk = getattr(key, "vk", None)
-    # print(f"vk: {vk}")
-    if vk == 65437:
-        print("Numpad 5 is pressed.")
-        clicked_position = pyautogui.position()  # Get the XY position of the mouse
-        print(f"clicked: {clicked_position}")
-        pyautogui.click()
-    if char == "/" and vk == None:
-        # This will be left click 2
-        print("Num / pressed")
-    if char == "*" and vk == None:
-        # This will be right click
-        print("Num * pressed")
+
+    if numlock_state is not True:
+        print(f"Numlock state is: {numlock_state}")
+        if vk == 65437:
+            print("Numpad 5 is pressed.")
+            clicked_position = pyautogui.position()  # Get the XY position of the mouse
+            print(f"clicked: {clicked_position}")
+            pyautogui.click()
+        if char == "/" and vk == None:
+            # This will be left click 2
+            print("Num / pressed")
+        if char == "*" and vk == None:
+            # This will be right click
+            print("Num * pressed")
 
 
 def on_release(key):

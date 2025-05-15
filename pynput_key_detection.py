@@ -4,6 +4,8 @@ from Xlib.display import Display
 import threading
 import time
 
+db_path = 
+
 
 # Hide mouse using X11 (Linux)
 def hide_mouse():
