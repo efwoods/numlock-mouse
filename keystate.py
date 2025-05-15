@@ -17,6 +17,13 @@ clicked_position = None
 numlock_state = is_numlock_on()
 
 
+# This will define an action when a key is pressed
+# def action_loop():
+#     while action_event.is_set():
+#         print("Action running while key is held...")
+#         time.sleep(0.1)  # simulate some repeated action
+
+
 def on_press(key):
     global numlock_state
     global clicked_position
@@ -47,7 +54,19 @@ def on_press(key):
         print("Num * pressed")
 
 
+def on_release(key):
+
+    if key in held_keys:
+        # held_keys.remove(key)
+        print(f"Key released: {key}")
+
+    if key == keyboard.Key.esc:
+        # Stop listener
+        return False
+
+
 if __name__ == "__main__":
+    print("Press ESC to stop program.")
     print("NumLock is ON" if is_numlock_on() else "NumLock is OFF")
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
