@@ -1,9 +1,8 @@
 from pynput import keyboard
 import pyautogui
 from Xlib.display import Display
-import ctypes
 import threading
-import pyautogui
+import time
 
 
 # Hide mouse using X11 (Linux)
@@ -23,7 +22,7 @@ class NumLockChecker:
         display = Display()
         modmap = display.get_modifier_mapping()
         keycodes = modmap[2]  # Modifier index 2 is Num Lock
-        return any(kc for kc in keycodes if kc != 0)
+        return any(keycode for keycode in keycodes if keycode != 0)
 
 
 class NumpadListener:
@@ -33,20 +32,39 @@ class NumpadListener:
         )
         self.num0_held = False
         self.mouse_hidden = True
+        self.numlock_state = None
+        self.numlock_thread = threading.Thread(
+            target=self.poll_numlock_state, daemon=True
+        )
+
+    def poll_numlock_state(self):
+        # Poll Num Lock state every 0.5 seconds and print if changed
+        while True:
+            current_state = NumLockChecker.is_enabled()
+            if self.numlock_state is None:
+                self.numlock_state = current_state
+                print(f"Initial Num Lock state: {'ON' if current_state else 'OFF'}")
+            elif current_state != self.numlock_state:
+                self.numlock_state = current_state
+                print(f"Num Lock state changed: {'ON' if current_state else 'OFF'}")
+            time.sleep(0.5)
 
     def on_press(self, key):
         try:
             if key == keyboard.KeyCode.from_vk(96):  # Numpad 0
                 if not self.num0_held:
                     self.num0_held = True
+                    print("Numpad 0 held. Showing mouse.")
                     if self.mouse_hidden:
-                        print("Numpad 0 held. showing mouse.")
                         show_mouse()
                         self.mouse_hidden = False
+
             elif key == keyboard.KeyCode.from_vk(101):  # Numpad 5
+                print("Numpad 5 pressed.")
                 if NumLockChecker.is_enabled():
                     print("Num Lock ON. Clicking mouse for Numpad 5.")
                     pyautogui.click()
+
         except AttributeError:
             pass
 
@@ -56,9 +74,10 @@ class NumpadListener:
 
     def on_release(self, key):
         if key == keyboard.KeyCode.from_vk(96):  # Numpad 0
-            if self.num0_held == False:
+            if self.num0_held:
+                self.num0_held = False
+                print("Numpad 0 released. Hiding mouse.")
                 if not self.mouse_hidden:
-                    print("Numpad 0 released. Hiding mouse.")
                     hide_mouse()
                     self.mouse_hidden = True
 
@@ -67,48 +86,11 @@ class NumpadListener:
             "Listening for Numpad 5 (click) and Numpad 0 (show/hide mouse). ESC to exit."
         )
         hide_mouse()  # Start with hidden mouse
+        self.numlock_thread.start()
         self.listener.start()
         self.listener.join()
-
-
-class KeyComboListener:
-    def __init__(self, combination):
-        self.combination = combination
-        self.pressed_keys = set()
-        self.listener = keyboard.Listener(
-            on_press=self.on_press, on_release=self.on_release
-        )
-
-    def on_press(self, key):
-        self.pressed_keys.add(key)
-
-        if self.combination.issubset(self.pressed_keys):
-            print("Detected Ctrl + Alt + K!")
-
-    def on_release(self, key):
-        if key in self.pressed_keys:
-            self.pressed_keys.remove(key)
-
-        if key == keyboard.Key.esc:
-            print("Exiting...")
-            self.listener.stop()  # Stop the listener cleanly
-
-    def start(self):
-        print("Listening for Ctrl + Alt + K. Press ESC to exit.")
-        self.listener.start()
-        self.listener.join()
-
-
-def drive_numpad_listener():
-    listener = NumpadListener()
-    listener.start()
-
-
-def drive_keyboard_keycombo_listener():
-    combo = {keyboard.Key.ctrl_l, keyboard.Key.alt_l, keyboard.KeyCode(char="k")}
-    listener = KeyComboListener(combo)
-    listener.start()
 
 
 if __name__ == "__main__":
-    drive_numpad_listener()
+    listener = NumpadListener()
+    listener.start()
